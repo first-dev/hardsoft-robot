@@ -9,17 +9,40 @@ DCMotors::DCMotors(byte IN1Pin, byte IN2Pin, byte IN3Pin, byte IN4Pin) {
   pinMode(IN2Pin, OUTPUT);
   pinMode(IN3Pin, OUTPUT);
   pinMode(IN4Pin, OUTPUT);
-  // leftSpeed = 0;
-  // rightSpeed = 0;
 }
+
 void DCMotors::loop() {
-  long currentMills = millis();
+  unsigned long currentMills = millis();
+  if (lastLoopMills == 0) {
+    lastLoopMills = currentMills;
+    return;
+  }
   long millsDiff = currentMills - lastLoopMills;
-  long requiredSteps = millsDiff * acceleration / 1000;
-
-
-
+  int requiredSteps = millsDiff * acceleration / 1000;
+  if (requiredSteps == 0) return;
+  if (leftSpeed != targetLeftSpeed)
+    leftSpeed = animateSpeed(leftSpeed, targetLeftSpeed, requiredSteps);
+  if (rightSpeed != targetRightSpeed)
+    rightSpeed = animateSpeed(rightSpeed, targetRightSpeed, requiredSteps);
+  apply();
   lastLoopMills = currentMills;
+}
+
+int DCMotors::animateSpeed(int speed, int targetSpeed, int requiredSteps) {
+  if (targetSpeed > speed) {
+    if (requiredSteps <= targetSpeed - speed) {
+      speed += requiredSteps;
+    } else {
+      speed = targetSpeed;
+    }
+  } else if (targetSpeed < speed) {
+    if (requiredSteps <= speed - targetSpeed) {
+      speed -= requiredSteps;
+    } else {
+      speed = targetSpeed;
+    }
+  }
+  return speed;
 }
 
 void DCMotors::apply() {
@@ -41,21 +64,21 @@ void DCMotors::apply() {
 
 void DCMotors::setRightSpeed(int value) {
   targetRightSpeed = value;
-  rightSpeed = value;
+  if (acceleration < 0)
+    rightSpeed = value;
   apply();
 }
 int DCMotors::getRightSpeed() {
   return rightSpeed;
-  return targetRightSpeed;
 }
 void DCMotors::setLeftSpeed(int value) {
   targetLeftSpeed = value;
-  leftSpeed = value;
+  if (acceleration <= 0)
+    leftSpeed = value;
   apply();
 }
 int DCMotors::getLeftSpeed() {
   return leftSpeed;
-  return targetLeftSpeed;
 }
 void DCMotors::setAcceleration(float value) {
   acceleration = value;
